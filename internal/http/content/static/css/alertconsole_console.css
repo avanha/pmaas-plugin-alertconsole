@@ -1,0 +1,125 @@
+.entity-alertconsole-console {
+    display: flex;
+    flex-flow: column;
+}
+
+.entity-alertconsole-console .group {
+    margin: 0 0 12px 0;
+}
+
+.entity-alertconsole-console .group-label {
+    font-weight: bold;
+    margin: 0 0 6px 0;
+}
+
+.entity-alertconsole-console .group-label .summary {
+    font-weight: normal;
+    opacity: 0.75;
+}
+
+.entity-alertconsole-console .none {
+    opacity: 0.8;
+}
+
+.entity-alertconsole-console .all-clear {
+    color: #5cb85c;
+}
+
+/* An alert is a card with a coloured edge, so severity reads at a glance down the page. Long text wraps
+   within the card rather than running out of it. */
+.entity-alertconsole-console .alert,
+.entity-alertconsole-console .cleared {
+    border: 1px solid #c8c8c8;
+    border-left-width: 5px;
+    border-radius: 3px;
+    padding: 6px 8px;
+    margin: 0 0 6px 0;
+    overflow-wrap: anywhere;
+}
+
+.entity-alertconsole-console .alert.critical {
+    border-left-color: #d9534f;
+}
+
+.entity-alertconsole-console .alert.warning {
+    border-left-color: #f0ad4e;
+}
+
+.entity-alertconsole-console .alert.info {
+    border-left-color: #5bc0de;
+}
+
+/* Alerts that have been seen are still active, so they stay, but they step back. */
+.entity-alertconsole-console .alert.acknowledged {
+    opacity: 0.6;
+}
+
+.entity-alertconsole-console .cleared {
+    border-left-color: #bbbbbb;
+    opacity: 0.75;
+}
+
+.entity-alertconsole-console .alert-header {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.entity-alertconsole-console .title {
+    font-weight: bold;
+}
+
+.entity-alertconsole-console .source {
+    opacity: 0.6;
+    font-size: 0.9em;
+}
+
+/* The badge: one per alert, coloured by severity. */
+.entity-alertconsole-console .severity-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.entity-alertconsole-console .severity-badge.critical {
+    background: #d9534f;
+}
+
+.entity-alertconsole-console .severity-badge.warning {
+    background: #f0ad4e;
+}
+
+.entity-alertconsole-console .severity-badge.info {
+    background: #5bc0de;
+}
+
+.entity-alertconsole-console .message {
+    margin: 4px 0 0 0;
+}
+
+.entity-alertconsole-console .alert-footer {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 0 0;
+    font-size: 0.9em;
+}
+
+.entity-alertconsole-console .alert-footer .timestamp {
+    opacity: 0.8;
+}
+
+.entity-alertconsole-console .ack-button {
+    cursor: pointer;
+}
+
+.entity-alertconsole-console .ack-error {
+    color: #d9534f;
+}

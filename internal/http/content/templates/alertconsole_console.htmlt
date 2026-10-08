@@ -1,0 +1,63 @@
+<div class="entity-alertconsole-console">
+    <div class="group">
+        <div class="group-label">
+            Active
+            {{if .Active}}
+                <span class="summary">
+                    ({{len .Active}}{{if .Unacknowledged}}, {{.Unacknowledged}} unacknowledged{{end}})
+                </span>
+            {{end}}
+        </div>
+        {{if .Active}}
+            {{range .Active}}
+                <div class="alert {{.Severity | html}}{{if .Acknowledged}} acknowledged{{end}}">
+                    <div class="alert-header">
+                        <span class="severity-badge {{.Severity | html}}">{{.SeverityLabel | html}}</span>
+                        <span class="title">{{.Title | html}}</span>
+                        <span class="source">{{.Source | html}}</span>
+                    </div>
+                    {{if .Message}}
+                        <div class="message">{{.Message | html}}</div>
+                    {{end}}
+                    <div class="alert-footer">
+                        <span class="timestamp">
+                            Raised {{.FirstRaised.Format "2006-01-02 3:04:05 PM"}} ({{RelativeTime .FirstRaised}})
+                        </span>
+                        {{if .Acknowledged}}
+                            <span class="acknowledged-note">
+                                <i class="bi bi-check-circle"></i> Acknowledged {{RelativeTime .AcknowledgedTime}}
+                            </span>
+                        {{else}}
+                            <button class="ack-button" data-source="{{.Source | html}}" data-key="{{.Key | html}}">Acknowledge</button>
+                            <span class="ack-error"></span>
+                        {{end}}
+                    </div>
+                </div>
+            {{end}}
+        {{else}}
+            <div class="none"><i class="bi bi-check-circle-fill all-clear"></i> No active alerts</div>
+        {{end}}
+    </div>
+    <div class="group">
+        <div class="group-label">Recently Cleared</div>
+        {{if .History}}
+            {{range .History}}
+                <div class="cleared">
+                    <div class="alert-header">
+                        <span class="severity-badge {{.Severity | html}}">{{.SeverityLabel | html}}</span>
+                        <span class="title">{{.Title | html}}</span>
+                        <span class="source">{{.Source | html}}</span>
+                    </div>
+                    <div class="alert-footer">
+                        <span class="timestamp">
+                            Raised {{.FirstRaised.Format "2006-01-02 3:04:05 PM"}},
+                            cleared {{.Cleared.Format "2006-01-02 3:04:05 PM"}} ({{RelativeTime .Cleared}})
+                        </span>
+                    </div>
+                </div>
+            {{end}}
+        {{else}}
+            <div class="none">Nothing has been cleared yet</div>
+        {{end}}
+    </div>
+</div>
