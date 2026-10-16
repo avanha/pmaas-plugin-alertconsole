@@ -15,6 +15,30 @@ import (
 )
 
 // fakeContainer implements just what the plugin uses. Calling anything else panics.
+type broadcast struct {
+	entityID string
+	event    any
+}
+
+func (c *fakeContainer) BroadcastEvent(entityEventId string, event any) error {
+	c.broadcasts = append(c.broadcasts, broadcast{entityEventId, event})
+
+	return nil
+}
+
+// summaries returns the summary events broadcast so far.
+func (c *fakeContainer) summaries() []alert.SummaryEvent {
+	var result []alert.SummaryEvent
+
+	for _, b := range c.broadcasts {
+		if summary, ok := b.event.(alert.SummaryEvent); ok {
+			result = append(result, summary)
+		}
+	}
+
+	return result
+}
+
 type fakeContainer struct {
 	spi.IPMAASContainer
 
@@ -24,6 +48,8 @@ type fakeContainer struct {
 	deregistered   []int
 	nextHandle     int
 	registerCalled int
+
+	broadcasts []broadcast
 
 	routes        map[string]*spi.HttpHandlerOptions
 	jsonRoutes    []string
@@ -289,7 +315,7 @@ func TestInit_RegistersThePageTheAcknowledgeRouteAndTheRenderer(t *testing.T) {
 	p.Init(container)
 
 	list, ok := container.routes[""]
-	if !ok || list.MenuLabel != "Alerts" || list.MenuIcon != "bell" || !list.SupportsXsrfValidation {
+	if !ok || list.MenuLabel != "Alerts" || list.MenuIcon != "" || !list.SupportsXsrfValidation {
 		t.Fatalf("unexpected list route %+v", list)
 	}
 
@@ -303,5 +329,93 @@ func TestInit_RegistersThePageTheAcknowledgeRouteAndTheRenderer(t *testing.T) {
 
 	if container.staticDir != "static" {
 		t.Fatalf("static content not enabled: %q", container.staticDir)
+	}
+}
+
+func TestSummary_TracksWhatStillNeedsAttention(t *testing.T) {
+	p, container := newStartedPlugin(t, NewPluginConfig())
+	adapter := &consoleStoreAdapter{parent: p}
+
+	last := func() alert.SummaryEvent {
+		t.Helper()
+
+		summaries := container.summaries()
+		if len(summaries) == 0 {
+			t.Fatal("no summary was published")
+		}
+
+		return summaries[len(summaries)-1]
+	}
+
+	_ = container.deliver(raised("a", alert.SeverityWarning))
+
+	if got := last(); got != (alert.SummaryEvent{Unacknowledged: 1, MostSevere: alert.SeverityWarning}) {
+		t.Fatalf("after raising a warning: %+v", got)
+	}
+
+	_ = container.deliver(raised("b", alert.SeverityCritical))
+
+	if got := last(); got != (alert.SummaryEvent{Unacknowledged: 2, MostSevere: alert.SeverityCritical}) {
+		t.Fatalf("after raising a critical: %+v", got)
+	}
+
+	// Acknowledging the critical one leaves the warning as what still needs attention.
+	if found, err := adapter.Acknowledge("nestthermostat", "b"); err != nil || !found {
+		t.Fatalf("got %v, %v", found, err)
+	}
+
+	if got := last(); got != (alert.SummaryEvent{Unacknowledged: 1, MostSevere: alert.SeverityWarning}) {
+		t.Fatalf("after acknowledging the critical: %+v", got)
+	}
+
+	// Raised again at the same severity, an acknowledged alert stays acknowledged...
+	_ = container.deliver(raised("b", alert.SeverityCritical))
+
+	if got := last(); got != (alert.SummaryEvent{Unacknowledged: 1, MostSevere: alert.SeverityWarning}) {
+		t.Fatalf("after re-raising an acknowledged alert: %+v", got)
+	}
+
+	// ...but one that escalates needs attention again.
+	_ = container.deliver(raised("a", alert.SeverityCritical))
+
+	if got := last(); got != (alert.SummaryEvent{Unacknowledged: 1, MostSevere: alert.SeverityCritical}) {
+		t.Fatalf("after an escalation: %+v", got)
+	}
+
+	// Acknowledging the rest, or clearing it, leaves nothing.
+	_, _ = adapter.Acknowledge("nestthermostat", "a")
+
+	if got := last(); got != (alert.SummaryEvent{}) {
+		t.Fatalf("after acknowledging everything: %+v", got)
+	}
+
+	_ = container.deliver(alert.ClearedEvent{Source: "nestthermostat", Key: "a"})
+	_ = container.deliver(alert.ClearedEvent{Source: "nestthermostat", Key: "b"})
+
+	if got := last(); got != (alert.SummaryEvent{}) {
+		t.Fatalf("after clearing everything: %+v", got)
+	}
+}
+
+func TestSummary_IsPublishedFromTheConsoleAndNotForIgnoredAlerts(t *testing.T) {
+	p, container := newStartedPlugin(t, NewPluginConfig())
+
+	_ = container.deliver(alert.RaisedEvent{Severity: alert.SeverityCritical}) // no source or key: ignored
+
+	if len(container.broadcasts) != 0 {
+		t.Fatalf("an ignored alert changed nothing, but %+v was broadcast", container.broadcasts)
+	}
+
+	_ = container.deliver(raised("a", alert.SeverityInfo))
+
+	if len(container.broadcasts) != 1 || container.broadcasts[0].entityID != p.ShortName() {
+		t.Fatalf("unexpected broadcasts %+v", container.broadcasts)
+	}
+
+	// Acknowledging an alert that isn't there changes nothing, so says nothing.
+	_, _ = (&consoleStoreAdapter{parent: p}).Acknowledge("nestthermostat", "nothing")
+
+	if len(container.broadcasts) != 1 {
+		t.Fatalf("unexpected broadcasts %+v", container.broadcasts)
 	}
 }

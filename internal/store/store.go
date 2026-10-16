@@ -220,3 +220,17 @@ func (s *Store) Unacknowledged() int {
 
 	return count
 }
+
+// MostSevereUnacknowledged returns the highest severity among the active alerts that haven't been
+// acknowledged, or zero if there are none.
+func (s *Store) MostSevereUnacknowledged() alert.Severity {
+	var worst alert.Severity
+
+	for _, a := range s.active {
+		if !a.Acknowledged && a.Severity > worst {
+			worst = a.Severity
+		}
+	}
+
+	return worst
+}

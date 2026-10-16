@@ -93,12 +93,32 @@ func (p *plugin) onAlertEvent(eventInfo *events.EventInfo) error {
 		}
 	}
 
+	p.publishSummary()
+
 	return nil
+}
+
+// publishSummary tells whoever is showing the state of the alerts at a glance (the page header, say) how many
+// still need the user's attention, and how bad the worst is. It's sent after every alert event, even one that
+// changed nothing, since producers raise an alert again each time they re-evaluate it, and that way a listener
+// that started late catches up. Runs on the plugin goroutine.
+func (p *plugin) publishSummary() {
+	err := alert.PublishSummary(
+		p.container, p.ShortName(), p.store.Unacknowledged(), p.store.MostSevereUnacknowledged())
+	if err != nil {
+		fmt.Printf("%T unable to publish the alert summary: %v\n", *p, err)
+	}
 }
 
 // acknowledge acknowledges an alert on behalf of the user. Runs on the plugin goroutine.
 func (p *plugin) acknowledge(source string, key string) bool {
-	return p.store.Acknowledge(source, key, p.now())
+	acknowledged := p.store.Acknowledge(source, key, p.now())
+
+	if acknowledged {
+		p.publishSummary()
+	}
+
+	return acknowledged
 }
 
 // getConsole builds what the console page shows. Runs on the plugin goroutine.

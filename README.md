@@ -34,6 +34,14 @@ Severities are `SeverityInfo`, `SeverityWarning` and `SeverityCritical`.
 * **Acknowledge** marks an alert as seen. It stays listed, dimmed, until whoever raised it clears it.
 * **Recently Cleared**: the last few alerts that were cleared, newest first.
 
+## The page header indicator
+
+Each time an alert is raised, cleared or acknowledged, the console broadcasts an `alert.SummaryEvent`: how many
+active alerts haven't been acknowledged, and the most severe of those. The basic web UI shows it as an icon next
+to the time in every page's header, in the colour of that severity, and hides it when there's nothing left to
+acknowledge. Acknowledging an alert removes it from the count until it escalates, as on this page. Any other
+plugin can listen for the same event (`alert.SummaryPredicate`).
+
 ## Configuration
 
 ```go

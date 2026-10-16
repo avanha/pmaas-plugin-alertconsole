@@ -314,3 +314,31 @@ func TestUnacknowledged(t *testing.T) {
 		t.Fatalf("got %d", got)
 	}
 }
+
+func TestMostSevereUnacknowledged(t *testing.T) {
+	s := New(0)
+	now := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)
+
+	if got := s.MostSevereUnacknowledged(); got != 0 {
+		t.Fatalf("empty store: %v", got)
+	}
+
+	s.Raise(alert.RaisedEvent{Source: "a", Key: "1", Severity: alert.SeverityWarning}, now)
+	s.Raise(alert.RaisedEvent{Source: "a", Key: "2", Severity: alert.SeverityCritical}, now)
+
+	if got := s.MostSevereUnacknowledged(); got != alert.SeverityCritical {
+		t.Fatalf("got %v", got)
+	}
+
+	s.Acknowledge("a", "2", now)
+
+	if got := s.MostSevereUnacknowledged(); got != alert.SeverityWarning {
+		t.Fatalf("with the critical acknowledged: %v", got)
+	}
+
+	s.Acknowledge("a", "1", now)
+
+	if got := s.MostSevereUnacknowledged(); got != 0 {
+		t.Fatalf("with everything acknowledged: %v", got)
+	}
+}
