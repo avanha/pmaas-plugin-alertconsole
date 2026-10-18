@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"errors"
+	"log/slog"
 	"net/http"
 	"path"
 	"strings"
@@ -165,7 +166,7 @@ func TestAcknowledgeRequest(t *testing.T) {
 	t.Run("acknowledges and says whether it was there", func(t *testing.T) {
 		for _, found := range []bool{true, false} {
 			store := &fakeStore{result: found}
-			h := &Handler{store: store}
+			h := &Handler{log: slog.New(slog.DiscardHandler), store: store}
 
 			response, err := h.handleHttpAcknowledgeRequest(nil, post, &acknowledgeRequest{Source: "nest", Key: "token"})
 			if err != nil {
@@ -184,7 +185,7 @@ func TestAcknowledgeRequest(t *testing.T) {
 
 	t.Run("only POST", func(t *testing.T) {
 		store := &fakeStore{}
-		h := &Handler{store: store}
+		h := &Handler{log: slog.New(slog.DiscardHandler), store: store}
 
 		if _, err := h.handleHttpAcknowledgeRequest(nil, &http.Request{Method: http.MethodGet}, &acknowledgeRequest{Source: "a", Key: "b"}); err == nil {
 			t.Error("a GET was accepted")
@@ -204,7 +205,7 @@ func TestAcknowledgeRequest(t *testing.T) {
 			"not a request",
 		} {
 			store := &fakeStore{}
-			h := &Handler{store: store}
+			h := &Handler{log: slog.New(slog.DiscardHandler), store: store}
 
 			if _, err := h.handleHttpAcknowledgeRequest(nil, post, body); err == nil {
 				t.Errorf("%#v: expected an error", body)
@@ -217,7 +218,7 @@ func TestAcknowledgeRequest(t *testing.T) {
 	})
 
 	t.Run("passes a failure on", func(t *testing.T) {
-		h := &Handler{store: &fakeStore{err: errors.New("boom")}}
+		h := &Handler{log: slog.New(slog.DiscardHandler), store: &fakeStore{err: errors.New("boom")}}
 
 		if _, err := h.handleHttpAcknowledgeRequest(nil, post, &acknowledgeRequest{Source: "a", Key: "b"}); err == nil {
 			t.Error("expected the failure to be reported")

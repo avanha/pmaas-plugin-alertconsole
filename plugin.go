@@ -2,6 +2,8 @@ package alertconsole
 
 import (
 	"fmt"
+	"github.com/avanha/pmaas-spi/logging"
+	"log/slog"
 	"time"
 
 	"github.com/avanha/pmaas-plugin-alertconsole/data"
@@ -17,6 +19,7 @@ type Plugin interface {
 }
 
 type plugin struct {
+	log         *slog.Logger
 	config      PluginConfig
 	container   spi.IPMAASContainer
 	store       *store.Store
@@ -45,12 +48,13 @@ func (p *plugin) ShortName() string {
 
 func (p *plugin) Init(container spi.IPMAASContainer) {
 	p.container = container
+	p.log = logging.For(container)
 	p.store = store.New(p.config.MaxHistory)
 	p.httpHandler.Init(container, &consoleStoreAdapter{parent: p})
 }
 
 func (p *plugin) Start() {
-	fmt.Printf("%T Starting...\n", *p)
+	p.log.Info("starting")
 
 	handle, err := p.container.RegisterEventReceiver(alert.EventPredicate, p.onAlertEvent)
 	if err != nil {
@@ -62,13 +66,13 @@ func (p *plugin) Start() {
 }
 
 func (p *plugin) Stop() chan func() {
-	fmt.Printf("%T Stopping...\n", *p)
+	p.log.Info("stopping")
 
 	if p.receiverRegistered {
 		p.receiverRegistered = false
 
 		if err := p.container.DeregisterEventReceiver(p.receiverHandle); err != nil {
-			fmt.Printf("%T unable to deregister the alert event receiver: %v\n", *p, err)
+			p.log.Error("unable to deregister the alert event receiver", "error", err)
 		}
 	}
 
@@ -83,13 +87,13 @@ func (p *plugin) onAlertEvent(eventInfo *events.EventInfo) error {
 		case store.ChangeIgnored:
 			return fmt.Errorf("ignoring an alert with no source or no key: %+v", event)
 		case store.ChangeNew:
-			fmt.Printf("%T alert raised: [%s] %s/%s: %s\n", *p, event.Severity, event.Source, event.Key, event.Title)
+			p.log.Info("alert raised", "severity", event.Severity, "source", event.Source, "key", event.Key, "title", event.Title)
 		case store.ChangeEscalated:
-			fmt.Printf("%T alert escalated: [%s] %s/%s: %s\n", *p, event.Severity, event.Source, event.Key, event.Title)
+			p.log.Info("alert escalated", "severity", event.Severity, "source", event.Source, "key", event.Key, "title", event.Title)
 		}
 	case alert.ClearedEvent:
 		if p.store.Clear(event.Source, event.Key, p.now()) {
-			fmt.Printf("%T alert cleared: %s/%s\n", *p, event.Source, event.Key)
+			p.log.Info("alert cleared", "source", event.Source, "key", event.Key)
 		}
 	}
 
@@ -106,7 +110,7 @@ func (p *plugin) publishSummary() {
 	err := alert.PublishSummary(
 		p.container, p.ShortName(), p.store.Unacknowledged(), p.store.MostSevereUnacknowledged())
 	if err != nil {
-		fmt.Printf("%T unable to publish the alert summary: %v\n", *p, err)
+		p.log.Error("unable to publish the alert summary", "error", err)
 	}
 }
 

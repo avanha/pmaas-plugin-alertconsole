@@ -4,8 +4,10 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"github.com/avanha/pmaas-spi/logging"
 	"html/template"
 	"io"
+	"log/slog"
 	"net/http"
 	"reflect"
 	"time"
@@ -30,6 +32,7 @@ var consoleTemplate = spi.TemplateInfo{
 
 // Handler owns the plugin's HTTP surface: the console page and the route that acknowledges an alert.
 type Handler struct {
+	log       *slog.Logger
 	container spi.IPMAASContainer
 	store     common.ConsoleStore
 }
@@ -40,6 +43,7 @@ func NewHandler() *Handler {
 
 func (h *Handler) Init(container spi.IPMAASContainer, store common.ConsoleStore) {
 	h.container = container
+	h.log = logging.For(container, "http")
 	h.store = store
 
 	container.ProvideContentFS(&contentFS, "content")
@@ -61,7 +65,7 @@ func (h *Handler) handleHttpListRequest(w http.ResponseWriter, r *http.Request) 
 	console, err := h.store.GetConsole()
 
 	if err != nil {
-		fmt.Printf("alertconsole.http handleHttpListRequest: unable to retrieve alerts: %v\n", err)
+		h.log.Error("unable to retrieve alerts", "error", err)
 		console = data.Console{}
 	}
 
