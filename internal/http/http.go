@@ -50,7 +50,7 @@ func (h *Handler) Init(container spi.IPMAASContainer, store common.ConsoleStore)
 	container.AddRouteWithOptions(
 		"",
 		h.handleHttpListRequest,
-		&spi.HttpHandlerOptions{SupportsXsrfValidation: true, MenuLabel: "Alerts"})
+		&spi.HttpHandlerOptions{SupportsXsrfValidation: true, MenuLabel: "Alerts", MenuPriority: 90})
 	container.AddJsonRoute(
 		"acknowledge",
 		func() any { return &acknowledgeRequest{} },
