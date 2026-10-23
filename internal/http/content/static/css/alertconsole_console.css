@@ -34,6 +34,7 @@
     border-radius: 3px;
     padding: 6px 8px;
     margin: 0 0 6px 0;
+    word-wrap: break-word;
     overflow-wrap: anywhere;
 }
 
@@ -63,7 +64,6 @@
     display: flex;
     flex-flow: row wrap;
     align-items: baseline;
-    gap: 8px;
 }
 
 .entity-alertconsole-console .title {
@@ -107,7 +107,6 @@
     display: flex;
     flex-flow: row wrap;
     align-items: center;
-    gap: 10px;
     margin: 4px 0 0 0;
     font-size: 0.9em;
 }
@@ -122,4 +121,14 @@
 
 .entity-alertconsole-console .ack-error {
     color: #d9534f;
+}
+
+/* Spacing between the items of the flex containers above, with margins and not `gap`: gap in a flex container needs Safari 14.1, and an old iPad
+   (iOS 9) draws the items touching without it. Each item has a margin on its right and below (the last one's is invisible). */
+.entity-alertconsole-console .alert-header > * {
+    margin: 0 8px 0 0;
+}
+
+.entity-alertconsole-console .alert-footer > * {
+    margin: 0 10px 0 0;
 }

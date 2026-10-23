@@ -51,3 +51,9 @@ coreConfig.AddPlugin(alertconsole.NewPlugin(conf), config.PluginConfig{})
 
 Alerts are kept in memory only, so they're gone after a restart. A plugin that re-checks its condition
 regularly raises its alerts again, which brings back the ones that still apply.
+
+## Old browsers
+
+The page is used on an iPad that stopped at iOS 9 (Safari 9), so `alertconsole_console.js` is plain ES5 with `XMLHttpRequest` (a script that uses an
+arrow function, a class field or `fetch` doesn't run there at all, and the buttons can't be clicked), and the stylesheet spaces items with margins,
+not `gap`, which needs Safari 14.1. Tests in `internal/http` (`oldbrowsers_test.go`, `js_test/`) look for what it doesn't have.
